@@ -95,66 +95,78 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_PW']) || ($_S
 	::-ms-input-placeholder{
 		color:#fff;
 	}
+	#msg{
+		color:#fff;
+		padding: 8px 12%;
+		text-align: center;
+		text-decoration:none;
+		font-weight: bold;
+		background-color:#D3B000;
+	}
 	</style>
 	<script type="text/javascript">
-	$(document).ready(function () {		
-		$("#btnSend").click(function(){
-			var regExp  = /0\d+/;
+		function numOnly(evt){
+			var theEvent = evt || window.event;
+			if(theEvent.type === 'paste') {
+				key = event.clipboardData.getData('text/plain');
+				
+			}else{
+				var key = theEvent.keyCode || theEvent.which;
+				key = String.fromCharCode(key);
+			}
+			
+			var regex = /[0-9]|\./;
+			if(!regex.test(key)){
+				theEvent.returnValue = false;
+				if(theEvent.preventDefault) theEvent.preventDefault();
+			}
+		}
+
+		function validate(){
 			var mobile  = $('#mobile').val();
 			var message = $('#message').val();
-			var data = {mobile:mobile,message:message + " \n " + new Date().toLocaleString()};	
 
 			if(mobile == ''){
 				alert('Mobile number must be checked.');
-				return true;
+				return false;
 			}else if(mobile.substring(0,1) != '7' || mobile.length != '9'){
 				alert('Enter correct mobile number i.e. 712 345 678.');
-				return true;
+				return false;
 			}else{
-				var url = 'http://localhost/Vantagehelp/ajax.php';
-				var xhr = new XMLHttpRequest();
-				xhr.open("POST",url,true);						
-				xhr.onreadystatechange = function(){
-					if(xhr.readyState === 4 && xhr.status === 200) {
-						console.log(xhr.responseText);
-						
-						alert(xhr.responseText);
-						
-						window.location.reload();
-					}
-				}	
-				xhr.setRequestHeader("Content-Type","application/json");				
-				xhr.send(JSON.stringify(data));				
+				return (true);
 			}
-		});
-	});
-
-	function numOnly(evt){
-		var theEvent = evt || window.event;
-		if(theEvent.type === 'paste') {
-			key = event.clipboardData.getData('text/plain');
-			
-		}else{
-			var key = theEvent.keyCode || theEvent.which;
-			key = String.fromCharCode(key);
-		}
-		
-		var regex = /[0-9]|\./;
-		if(!regex.test(key)){
-			theEvent.returnValue = false;
-			if(theEvent.preventDefault) theEvent.preventDefault();
-		}
-	}	
+		}	
 	</script>
 	</head>
 	<body style="background:#EFEFEF">
 		<br><br><br><br><br><br><br><br>
 		<center>
-			<table class="main" width="35%" cellspacing="0" cellpadding="0">
+			<?php
+			if(isset($_GET['msg']) && trim($_GET['msg']) != ''){
+				$msg = $_GET['msg'];
+			}else{
+				$msg = '';
+			}
+			if($msg == 'fail'){			
+			?>
+				<small id="msg">Message not submitted</small>
+			<?php
+			}else if(($msg == 'success')){
+				$pdo = (new SQLiteConn())->connect();
+				$sql = new SQLiteInsert($pdo);	
+				$sql->insertMessage(Config::COUNTRY_CODE.$_GET['mobile'],$_GET['message'],date("Y-m-d H:i:s"));
+			?>
+				<small id="msg">Message submitted successfully</small>
+			<?php			
+			}
+			?>
+			<br><br>
+			<table class="main" width="40%" cellspacing="0" cellpadding="0">
 			    <tr style="background-color:#252525;"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
 				<tr style="background-color:#252525;">
 					<td colspan="3">
 						<table width="100%" cellspacing="0" cellpadding="0">
+							<form method="post" action="messaging/index.php" onsubmit="return(validate());">
 							<tr>
 								<td>&nbsp;<input type="text" id="mobile" name="mobile" size="40" onkeypress="numOnly(event);" placeholder="Enter mobile number: (712 345 678)" maxlength="9"/></td>
 							</tr>
@@ -172,6 +184,7 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_PW']) || ($_S
 							<tr>
 								<td align="right"><button class="button" id="btnSend" name="btnSend"><kbd>SEND</kbd></button>&nbsp;</td>
 							</tr>
+							</form>
 						</table>
 					</td>
 				</tr>
